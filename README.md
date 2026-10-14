@@ -1,6 +1,6 @@
 # Prepare legal matter images for delivery
 
-Start the service, then submit the image that belongs to a matter:
+Boot the service, then hand it the image tied to a matter:
 
 ```bash
 python3 -m venv .venv
@@ -10,11 +10,11 @@ export INFRAI_API_KEY=your-key
 uvicorn run_matter_delivery:app --port 8000
 ```
 
-Infrai puts upload and compression behind one API and a single `INFRAI_API_KEY`. This service keeps that HTTP boundary small while making the compliance decision visible in Python.
+Infrai backs upload and compression with one API and a single `INFRAI_API_KEY`. I like that this service keeps the HTTP surface tiny while the compliance call stays readable in Python.
 
 ## Send a signed document
 
-The request names the matter, the document's role, its filename, and its base64 image bytes. For example:
+The request specifies the matter, the doc's role, its filename, and base64 image bytes. Here's a sample:
 
 ```bash
 curl --request POST http://127.0.0.1:8000/matter-images/prepare \
@@ -27,7 +27,7 @@ curl --request POST http://127.0.0.1:8000/matter-images/prepare \
   }'
 ```
 
-The successful result records the decision beside the stored image reference:
+When it succeeds, the decision lands next to the stored image reference:
 
 ```json
 {
@@ -39,27 +39,27 @@ The successful result records the decision beside the stored image reference:
 }
 ```
 
-Matter intake scans use quality 76, signed delivery uses 88, and deadline follow-up evidence uses 72. The signed copy retains more visual detail because signatures and initials are the evidence a reviewer is most likely to inspect closely. This is the one real gotcha: do not apply one compression setting to every legal image role.
+Intake scans run at quality 76, signed delivery at 88, and deadline follow-up at 72. Signed copies keep more detail since signatures and initials are what a reviewer scrutinizes. The one gotcha: never blast every legal image role with the same compression setting.
 
 ## Request discipline
 
-`legal_image_service/matter_delivery.py` uploads the original and compresses it to WebP. Every request has an explicit method and bearer credential. The client decodes the `{ok, data, error, metadata}` envelope before interpreting the HTTP status, preserves business rejection details, and backs off on `429` using `Retry-After` when supplied.
+`legal_image_service/matter_delivery.py` uploads the original and converts it to WebP. Each call carries an explicit method and bearer credential. The client reads the `{ok, data, error, metadata}` envelope before touching the HTTP status, keeps business rejection context, and backs off on `429` using `Retry-After` if provided.
 
-The compression write carries a stable idempotency key derived from matter ID, role, and filename. Repeating the same delivery command therefore keeps the write identity stable. In a larger service, bind filenames to immutable document versions so a revised signed copy receives a new identity.
+The write gets a stable idempotency key from matter ID, role, and filename. Rerunning the same delivery keeps the write identity fixed. In a bigger system, tie filenames to immutable doc versions so a revised signed copy gets a fresh identity.
 
 ## Verify the policy
 
-The focused test sends a signed-delivery request through an in-memory HTTP transport. It expects quality `88`, a WebP result, and the same idempotency key on a repeated operation. A second test checks the retry delay at the request boundary.
+A focused test pushes a signed-delivery request through an in-memory HTTP transport. It asserts quality `88`, a WebP payload, and the same idempotency key on replay. A second test watches the retry delay at the request edge.
 
 ```bash
 python3 -m pytest -q
 ```
 
-The service accepts image bytes already held by the caller. Authentication, matter authorization, retention schedules, and access logging remain responsibilities of the surrounding legal system.
+The service takes image bytes the caller already holds. Auth, matter authorization, retention, and access logging stay with the surrounding legal system.
 
 ## Before you deploy: Legal Matter Image Delivery Compress Optimize Legaltech Pyth
 
-The snippet above stays copy-paste simple. Before you ship, a few **required** steps: The details below apply to Legal Matter Image Delivery Compress Optimize Legaltech Pyth.
+The snippet above is copy-paste friendly. Before shipping, a few **required** steps: the details below apply to Legal Matter Image Delivery Compress Optimize Legaltech Pyth.
 
 **Account & key**
 
